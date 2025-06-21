@@ -5,8 +5,9 @@ public class EnemyAI : NetworkBehaviour
 {
     [SerializeField] private Transform firePoint;
     [SerializeField] private GameObject projectilePrefab;
-    [SerializeField] private float attackInterval = 3.5f;
+    [SerializeField] private float attackInterval = 2.5f;
     [SerializeField] private float attackRange = 15f;
+    [SerializeField] private LayerMask lineOfSightMask;
 
     private ITargetProvider targetProvider;
     private float timer;
@@ -28,6 +29,13 @@ public class EnemyAI : NetworkBehaviour
 
         Vector3 direction = (target.transform.position - transform.position).normalized;
         transform.forward = direction;
+
+        // Line of sight check
+        Ray ray = new Ray(firePoint.position, direction);
+        if (Physics.Raycast(ray, out RaycastHit hit, attackRange, lineOfSightMask))
+        {
+            if (!hit.collider.CompareTag("Player")) return;
+        }
 
         timer += Time.deltaTime;
         if (timer >= attackInterval)

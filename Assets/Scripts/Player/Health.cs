@@ -96,7 +96,7 @@ public class Health : NetworkBehaviour, IDamageable
     {
         if (diedClientId == NetworkManager.Singleton.LocalClientId)
         {
-            MenuUI.Instance?.ShowRespawnButton();
+            UIManager.Instance?.ShowRespawnButton();
         }
     }
 }

@@ -46,12 +46,9 @@ public class Projectile : NetworkBehaviour, IProjectile
     {
         if (!IsServer) return;
 
-        if (other.TryGetComponent<Health>(out var health))
+        if (other.TryGetComponent<IDamageable>(out var target))
         {
-            if (health.IsAlive)
-            {
-                health.TakeDamage(damage);
-            }
+            target.TakeDamage(damage);
         }
 
         Despawn();

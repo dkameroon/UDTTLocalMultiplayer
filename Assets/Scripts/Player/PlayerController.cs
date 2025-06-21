@@ -24,9 +24,9 @@ public class PlayerController : NetworkBehaviour
         if (IsServer)
         {
             Vector3 randomSpawnPos = new Vector3(
-                Random.Range(-10f, 10f),
+                Random.Range(10f, -5f),
                 1f,
-                Random.Range(-10f, 10f));
+                Random.Range(-35f, -45f));
             transform.position = randomSpawnPos;
         }
 

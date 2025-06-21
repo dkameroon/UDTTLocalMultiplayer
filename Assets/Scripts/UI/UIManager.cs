@@ -3,9 +3,9 @@ using UnityEngine;
 using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
-public class MenuUI : MonoBehaviour
+public class UIManager : MonoBehaviour
 {
-    public static MenuUI Instance { get; private set; }
+    public static UIManager Instance { get; private set; }
 
     [SerializeField] private GameObject menuUI;
     [SerializeField] private Button respawnButton;
@@ -105,9 +105,9 @@ public class MenuUI : MonoBehaviour
         }
 
         Vector3 spawnPosition = new Vector3(
-            Random.Range(-10f, 10f),
-            1f,
-            Random.Range(-10f, 10f)
+                Random.Range(10f, -5f),
+                1f,
+                Random.Range(-35f, -45f)
         );
 
         health.RespawnServerRpc(spawnPosition);
