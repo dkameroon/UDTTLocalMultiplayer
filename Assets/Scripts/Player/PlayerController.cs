@@ -6,14 +6,19 @@ using UnityEngine;
 [RequireComponent(typeof(NetworkTransform))]
 public class PlayerController : NetworkBehaviour
 {
+    [Header("Movement Settings")]
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float rotationSpeed = 10f;
 
     private CharacterController controller;
     private CameraFollow cameraFollow;
 
+    // Stores the latest movement input from the owner client, synchronized via ServerRpc
     private Vector3 latestMoveInput;
 
+    private const float PlayerRadius = 0.7f;
+    private const float PlayerHeight = 2f;
+    
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
@@ -23,19 +28,12 @@ public class PlayerController : NetworkBehaviour
     {
         if (IsServer)
         {
-            Vector3 randomSpawnPos = new Vector3(
-                Random.Range(10f, -5f),
-                1f,
-                Random.Range(-35f, -45f));
-            transform.position = randomSpawnPos;
+            SetRandomSpawnPosition();
         }
 
-        if (!IsOwner) return;
-
-        cameraFollow = Camera.main.GetComponent<CameraFollow>();
-        if (cameraFollow != null)
+        if (IsOwner)
         {
-            cameraFollow.SetTarget(transform);
+            SetupCameraFollow();
         }
     }
 
@@ -48,10 +46,11 @@ public class PlayerController : NetworkBehaviour
 
         if (IsServer)
         {
-            ServerMoveUpdate();
+            ProcessMovement();
         }
     }
 
+    // Gathers input from the local player and sends it to the server.
     private void GatherAndSendInput()
     {
         Camera mainCam = Camera.main;
@@ -63,8 +62,8 @@ public class PlayerController : NetworkBehaviour
         Vector3 forward = mainCam.transform.forward;
         Vector3 right = mainCam.transform.right;
 
-        forward.y = 0;
-        right.y = 0;
+        forward.y = 0f;
+        right.y = 0f;
         forward.Normalize();
         right.Normalize();
 
@@ -80,44 +79,88 @@ public class PlayerController : NetworkBehaviour
         latestMoveInput = moveInput;
     }
 
-    private void ServerMoveUpdate()
+    // Processes player movement on the server, including collision checks.
+    private void ProcessMovement()
     {
         if (latestMoveInput == Vector3.zero) return;
 
         float moveDistance = moveSpeed * Time.deltaTime;
 
-        float playerRadius = 0.7f;
-        float playerHeight = 2f;
-        bool canMove = !Physics.CapsuleCast(transform.position, transform.position + Vector3.up * playerHeight, playerRadius, latestMoveInput, moveDistance);
-
-        if (!canMove)
+        // Check if movement in desired direction is possible without collision
+        if (CanMove(latestMoveInput, moveDistance))
         {
-            Vector3 moveDirX = new Vector3(latestMoveInput.x, 0, 0).normalized;
-            canMove = latestMoveInput.x != 0 && !Physics.CapsuleCast(transform.position, transform.position + Vector3.up * playerHeight, playerRadius, moveDirX, moveDistance);
-            if (canMove)
+            MovePlayer(latestMoveInput, moveDistance);
+            RotatePlayerTowards(latestMoveInput);
+        }
+        else
+        {
+            // Try moving only on X axis
+            Vector3 moveDirX = new Vector3(latestMoveInput.x, 0f, 0f).normalized;
+            if (latestMoveInput.x != 0 && CanMove(moveDirX, moveDistance))
             {
+                MovePlayer(moveDirX, moveDistance);
+                RotatePlayerTowards(moveDirX);
                 latestMoveInput = moveDirX;
             }
             else
             {
-                Vector3 moveDirZ = new Vector3(0, 0, latestMoveInput.z).normalized;
-                canMove = latestMoveInput.z != 0 && !Physics.CapsuleCast(transform.position, transform.position + Vector3.up * playerHeight, playerRadius, moveDirZ, moveDistance);
-                if (canMove)
+                // Try moving only on Z axis
+                Vector3 moveDirZ = new Vector3(0f, 0f, latestMoveInput.z).normalized;
+                if (latestMoveInput.z != 0 && CanMove(moveDirZ, moveDistance))
                 {
+                    MovePlayer(moveDirZ, moveDistance);
+                    RotatePlayerTowards(moveDirZ);
                     latestMoveInput = moveDirZ;
                 }
             }
         }
+    }
 
-        if (canMove)
+
+    // Checks whether the player can move in the given direction without colliding with obstacles.
+    private bool CanMove(Vector3 direction, float distance)
+    {
+        Vector3 start = transform.position;
+        Vector3 end = start + Vector3.up * PlayerHeight;
+        return !Physics.CapsuleCast(start, end, PlayerRadius, direction, distance);
+    }
+    
+    // Moves the player in the specified direction.
+    private void MovePlayer(Vector3 direction, float distance)
+    {
+        controller.Move(direction * distance);
+    }
+    
+    // Smoothly rotates the player to face the movement direction.
+    private void RotatePlayerTowards(Vector3 direction)
+    {
+        transform.forward = Vector3.Slerp(transform.forward, direction, Time.deltaTime * rotationSpeed);
+    }
+    
+
+    private void SetRandomSpawnPosition()
+    {
+        Vector3 randomSpawnPos = new Vector3(
+            Random.Range(-5f, 10f),  // Corrected range for clarity
+            1f,
+            Random.Range(-45f, -35f));
+        transform.position = randomSpawnPos;
+    }
+
+    private void SetupCameraFollow()
+    {
+        cameraFollow = Camera.main?.GetComponent<CameraFollow>();
+        if (cameraFollow != null)
         {
-            controller.Move(latestMoveInput * moveDistance);
-            transform.forward = Vector3.Slerp(transform.forward, latestMoveInput, Time.deltaTime * rotationSpeed);
+            cameraFollow.SetTarget(transform);
+        }
+        else
+        {
+            Debug.LogWarning("CameraFollow component not found on Main Camera.");
         }
     }
+    
+    // Returns whether the player is currently moving.
+    public bool IsWalking() => latestMoveInput != Vector3.zero;
 
-    public bool IsWalking()
-    {
-        return latestMoveInput != Vector3.zero;
-    }
 }

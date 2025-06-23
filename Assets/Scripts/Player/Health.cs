@@ -3,13 +3,15 @@ using UnityEngine;
 
 public class Health : NetworkBehaviour, IDamageable
 {
+    [Header("Settings")]
     [SerializeField] private int maxHealth = 100;
     [SerializeField] private PlayerHealthBar healthBarPrefab;
 
-    private NetworkVariable<int> currentHealth = new NetworkVariable<int>();
+    private readonly NetworkVariable<int> currentHealth = new NetworkVariable<int>();
+
     private PlayerHealthBar healthBarInstance;
-    
-    public bool IsAlive => currentHealth.Value > 0;
+
+    #region Unity Lifecycle
 
     public override void OnNetworkSpawn()
     {
@@ -20,20 +22,15 @@ public class Health : NetworkBehaviour, IDamageable
 
         if (IsOwner)
         {
-            Transform container = GameObject.Find("PlayersHealthContainer")?.transform;
-            if (container != null && healthBarPrefab != null)
-            {
-                healthBarInstance = Instantiate(healthBarPrefab, container);
-                UpdateHealthBar();
-            }
+            SpawnHealthBar();
         }
 
-        currentHealth.OnValueChanged += OnHealthChanged;
+        currentHealth.OnValueChanged += HandleHealthChanged;
     }
 
     private void OnDestroy()
     {
-        currentHealth.OnValueChanged -= OnHealthChanged;
+        currentHealth.OnValueChanged -= HandleHealthChanged;
 
         if (IsOwner && healthBarInstance != null)
         {
@@ -41,15 +38,39 @@ public class Health : NetworkBehaviour, IDamageable
         }
     }
 
-    private void OnHealthChanged(int oldHealth, int newHealth)
+
+    public void TakeDamage(int amount)
+    {
+        if (!IsServer || !IsAlive()) return;
+
+        currentHealth.Value = Mathf.Max(currentHealth.Value - amount, 0);
+    }
+
+    public bool IsAlive()
+    {
+        return currentHealth.Value > 0;
+    }
+
+    private void HandleHealthChanged(int oldValue, int newValue)
     {
         UpdateHealthBar();
 
-        if (IsServer && newHealth <= 0 && oldHealth > 0)
+        if (IsServer && newValue <= 0 && oldValue > 0)
         {
             Debug.Log($"{OwnerClientId} died.");
+
             HidePlayerClientRpc();
             NotifyClientOfDeathClientRpc(OwnerClientId);
+        }
+    }
+
+    private void SpawnHealthBar()
+    {
+        Transform container = GameObject.Find("PlayersHealthContainer")?.transform;
+        if (container != null && healthBarPrefab != null)
+        {
+            healthBarInstance = Instantiate(healthBarPrefab, container);
+            UpdateHealthBar();
         }
     }
 
@@ -61,17 +82,13 @@ public class Health : NetworkBehaviour, IDamageable
             healthBarInstance.SetHealth(normalized, currentHealth.Value, maxHealth);
         }
     }
-
-    public void TakeDamage(int amount)
-    {
-        if (!IsServer || currentHealth.Value <= 0) return;
-
-        currentHealth.Value = Mathf.Max(currentHealth.Value - amount, 0);
-    }
+    
 
     [ServerRpc(RequireOwnership = false)]
     public void RespawnServerRpc(Vector3 spawnPosition)
     {
+        if (!IsServer) return;
+
         currentHealth.Value = maxHealth;
         transform.position = spawnPosition;
 
@@ -92,11 +109,13 @@ public class Health : NetworkBehaviour, IDamageable
     }
 
     [ClientRpc]
-    private void NotifyClientOfDeathClientRpc(ulong diedClientId)
+    private void NotifyClientOfDeathClientRpc(ulong deadClientId)
     {
-        if (diedClientId == NetworkManager.Singleton.LocalClientId)
+        if (deadClientId == NetworkManager.Singleton.LocalClientId)
         {
             UIManager.Instance?.ShowRespawnButton();
         }
     }
+
+    #endregion
 }

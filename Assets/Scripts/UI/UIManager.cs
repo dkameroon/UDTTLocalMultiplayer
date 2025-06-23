@@ -6,7 +6,7 @@ using Random = UnityEngine.Random;
 public class UIManager : MonoBehaviour
 {
     public static UIManager Instance { get; private set; }
-
+    [Header("UI References")]
     [SerializeField] private GameObject menuUI;
     [SerializeField] private Button respawnButton;
     
@@ -55,6 +55,7 @@ public class UIManager : MonoBehaviour
 
     private void Update()
     {
+        // Only allow menu toggle if network session active
         if (!NetworkManager.Singleton.IsClient && !NetworkManager.Singleton.IsServer)
             return;
 
@@ -90,6 +91,7 @@ public class UIManager : MonoBehaviour
             respawnButton.gameObject.SetActive(false);
     }
 
+
     private void OnRespawnButtonClicked()
     {
         var localPlayer = NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject();
@@ -103,7 +105,7 @@ public class UIManager : MonoBehaviour
         {
             return;
         }
-
+        // Generate a spawn position - consider making this deterministic or from a spawn manager in a real game
         Vector3 spawnPosition = new Vector3(
                 Random.Range(10f, -5f),
                 1f,

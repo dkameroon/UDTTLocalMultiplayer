@@ -4,9 +4,11 @@ using UnityEngine.UI;
 
 public class NetworkManagerUI : MonoBehaviour
 {
+    [Header("Buttons")]
     [SerializeField] private Button hostButton;
     [SerializeField] private Button clientButton;
     [SerializeField] private Button shutdownButton;
+    [Header("Background")]
     [SerializeField] private GameObject background;
 
     private void Awake()

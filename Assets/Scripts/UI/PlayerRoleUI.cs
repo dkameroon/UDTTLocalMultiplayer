@@ -4,19 +4,42 @@ using TMPro;
 
 public class PlayerRoleUI : NetworkBehaviour
 {
+    [Header("UI Settings")]
     [SerializeField] private GameObject playerUIPrefab;
+
+    private GameObject uiInstance;
 
     public override void OnNetworkSpawn()
     {
         if (!IsOwner) return;
         
-        GameObject uiInstance = Instantiate(playerUIPrefab);
-        uiInstance.transform.SetParent(GameObject.Find("Canvas")?.transform, false);
-
-        var roleText = uiInstance.transform.Find("RoleLabel")?.GetComponent<TextMeshProUGUI>();
-        if (roleText != null)
+        Transform canvasTransform = GameObject.Find("Canvas")?.transform;
+        if (canvasTransform == null)
         {
-            roleText.text = IsHost ? "HOST" : "CLIENT";
+            Debug.LogWarning("Canvas not found in the scene. PlayerRoleUI will not be displayed.");
+            return;
+        }
+
+        // Instantiate the UI prefab as a child of the Canvas
+        uiInstance = Instantiate(playerUIPrefab, canvasTransform, false);
+
+        // Find the RoleLabel Text component in the instantiated UI
+        var roleText = uiInstance.transform.Find("RoleLabel")?.GetComponent<TextMeshProUGUI>();
+        if (roleText == null)
+        {
+            Debug.LogWarning("RoleLabel TextMeshProUGUI not found in playerUIPrefab.");
+            return;
+        }
+
+        // Set the text based on whether this client is Host or Client
+        roleText.text = IsHost ? "HOST" : "CLIENT";
+    }
+
+    private void OnDestroy()
+    {
+        if (uiInstance != null)
+        {
+            Destroy(uiInstance);
         }
     }
 }

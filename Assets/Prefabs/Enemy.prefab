@@ -246,7 +246,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 193899293
+  GlobalObjectIdHash: 1845159183
   InScenePlacedSourceGlobalObjectIdHash: 1845159183
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
@@ -271,6 +271,9 @@ MonoBehaviour:
   projectilePrefab: {fileID: 5479431839804962395, guid: 4796117c843212e4c927863645964e87, type: 3}
   attackInterval: 3.5
   attackRange: 15
+  lineOfSightMask:
+    serializedVersion: 2
+    m_Bits: 8
 --- !u!114 &276200823864644142
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -4,6 +4,7 @@ using UnityEngine.UI;
 
 public class PlayerHealthBar : MonoBehaviour
 {
+    [Header("UI References")]
     [SerializeField] private Image fillImage;
     [SerializeField] private TextMeshProUGUI healthText;
     
